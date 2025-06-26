@@ -7,4 +7,4 @@ class ChorpBrother(NamedTuple):
 
 
 def chorp_chorp(chorp_brother: ChorpBrother, job: str):
-    print("chorp")
+    print("chorp-chorp")
