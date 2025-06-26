@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Morse Code Converter</title>
+</head>
+<body>
+    <h1>Morse Code Converter</h1>
+    <form method="post" id="converter-form">
+        <input type="text" name="text" id="text-input" value="{{ text or '' }}" placeholder="Enter text or morse code">
+        <input type="hidden" name="action_type" id="action-type">
+        <button type="submit" onclick="setAction('to_morse')">To Morse</button>
+        <button type="submit" onclick="setAction('to_text')">To Text</button>
+    </form>
+
+    <p><strong>Result:</strong> {{ result }}</p>
+    {% if result %}
+        <button onclick="reuseResult()">Use Result as Input</button>
+    {% endif %}
+
+    <script>
+        function setAction(action) {
+            document.getElementById('action-type').value = action;
+        }
+
+        function reuseResult() {
+            const resultText = "{{ result }}";
+            document.getElementById('text-input').value = resultText;
+        }
+    </script>
+</body>
+</html>

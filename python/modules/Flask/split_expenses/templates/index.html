@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Split Calculator</title>
+</head>
+<body>
+    <h1>Split Expense Calculator</h1>
+    <form method="POST">
+        <label>Total Amount:</label>
+        <input type="number" name="total_amount" step="0.01" required><br><br>
+
+        <label>Number of People:</label>
+        <input type="number" name="number_of_people" min="1" required><br><br>
+
+        <label>Currency:</label>
+        <input type="text" name="currency" value="€" required><br><br>
+
+        <label>Uneven split?</label>
+        <select name="choice" onchange="this.form.submit()">
+            <option value="no">No</option>
+            <option value="yes" {% if request.form.get('choice') == 'yes' %}selected{% endif %}>Yes</option>
+        </select>
+    </form>
+
+    {% if request.method == 'POST' and request.form.get('choice') == 'yes' %}
+    <form method="POST">
+        <input type="hidden" name="total_amount" value="{{ request.form.total_amount }}">
+        <input type="hidden" name="number_of_people" value="{{ request.form.number_of_people }}">
+        <input type="hidden" name="currency" value="{{ request.form.currency }}">
+        <input type="hidden" name="choice" value="yes">
+
+        {% for i in range(1, int(request.form.number_of_people) + 1) %}
+            <label>Percentage for Person {{ i }}:</label>
+            <input type="number" name="percent_{{ i }}" step="0.01" required><br>
+        {% endfor %}
+        <br>
+        <input type="submit" value="Calculate">
+    </form>
+    {% endif %}
+
+    {% if result %}
+        <h2>Result:</h2>
+        <ul>
+            {% for r in result %}
+                <li>Person {{ r.person }}: {{ request.form.currency }}{{ "%.2f"|format(r.amount) }} ({{ r.percentage }}%)</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if error %}
+        <p style="color:red;">Error: {{ error }}</p>
+    {% endif %}
+</body>
+</html>
