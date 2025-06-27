@@ -9,9 +9,16 @@ EXPOSE 5000
 CMD ["python3", "app.py"]
 
 
-# docker build -t appname .   TO build in docker APP
-# docker tag image_name username/appname 
+docker build -t username/appname:tag .          # with tag for Hub right away       #tag: optional, default is latest 
+
+
+# docker build -t appname .   
+# docker tag image_name username/appname        # if forgot during build
+
+
 # docker push username/appname    TO PUSH to DockerHub repository
+
+
 
 # wsl --shutdown        to kill the process
 

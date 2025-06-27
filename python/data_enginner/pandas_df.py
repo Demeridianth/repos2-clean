@@ -196,16 +196,4 @@ retail.astype({'sales': 'int8'})                # replace bit size, SHOULD BE CA
 retail = retail.astype({'family': 'category'})  # use category dtype when there is not a lot of values in column
 
 
-# aggregation functions
-p_league = pd.read_excel('project_data/premier_league_games.xlsx')
-
-p_league.loc[:, ['HomeGoals', 'AwayGoals']].mean().sum()
-
-
-# groupby
-p_league.groupby('AwayTeam')['AwayGoals'].mean()        # gouping a column and an aggregation (like in SQL)
-# will return a Series
-
-p_league.groupby('AwayTeam')[['AwayGoals']].mean()      # with 2 brackets will return a dataframe
-
 

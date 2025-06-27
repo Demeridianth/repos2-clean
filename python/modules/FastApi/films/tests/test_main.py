@@ -11,7 +11,7 @@ def mock_storage():
     ]
 
 # Override dependency
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True)       # remove autouse and in tests pass mock_storage and ovveride_dep as arguments
 def override_dependency(mock_storage):
     app.dependency_overrides[get_films_storage] = lambda: mock_storage
     yield
