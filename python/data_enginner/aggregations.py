@@ -37,3 +37,12 @@ ag_league.loc[('2008/2009', 'Arsenal'):('2008/2009', 'Bolton Wanderers')]
 
 ag_league =  p_league.groupby(['season', 'HomeTeam']).agg({'HomeGoals': ['sum', 'mean']})
 ag_league.loc['2010/2011', ('HomeGoals', 'mean')]
+
+
+# MODIFYING MULTI-INDICES
+ag_league.reset_index()     # goes back to basic dataframe
+ag_league.swaplevel()
+ag_league.droplevel()
+
+ag_league.droplevel(0, axis=1).reset_index()        # to drop extra layers and go back to basic df
+
