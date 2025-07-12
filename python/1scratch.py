@@ -23,6 +23,47 @@ class FilmDB(Base):
     description = Column(String)
     release_year = Column(Integer)
 
-
 # IF THE TABLE DOESNT EXIST YET IN THE DATABASE
-# Base.metadata.create_all(bind=engine)     
+Base.metadata.create_all(bind=engine)     
+
+
+# FastApi app
+app = FastAPI()
+
+
+# Pydantic models
+
+# FilmBase → Shared fields
+
+# FilmCreate → POST input
+
+# FilmUpdate → PUT input
+
+# FilmOut → GET response
+
+
+class FilmBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    release_year: Optional[int] = None
+
+class FilmCreate(FilmBase):
+    pass
+
+class FilmUpdate(FilmBase):
+    title: Optional[str] = None
+
+class FilmOut(FilmBase):
+    film_id: int
+
+    class Config:
+        orm_mode = True
+
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

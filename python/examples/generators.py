@@ -2,6 +2,16 @@ import sys
 import re
 
 
+def count_up_to(n):
+    count = 1
+    while count <= n:
+        yield count
+        count += 1
+
+for num in count_up_to(3):
+    print(num)
+
+
 def infinite_sequence():
     num = 0
     while True:

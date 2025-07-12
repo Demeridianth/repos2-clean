@@ -46,3 +46,18 @@ ag_league.droplevel()
 
 ag_league.droplevel(0, axis=1).reset_index()        # to drop extra layers and go back to basic df
 
+
+# AGG METHOD
+# lets you aggregate all compatible columns
+
+# specify wich columns to agg in dictionary forms, will create multilevels
+(p_league.
+ groupby(['season', 'HomeTeam'], as_index=False)
+ .agg({'HomeGoals': ['sum', 'mean'],
+      'AwayGoals': ['sum', 'sum']}))
+
+# OR specify new_columns which will have "sum" or "mean", NO MULTILEVELS !!!
+(p_league.
+ groupby(['season', 'HomeTeam'], as_index=False)
+ .agg(home_goals_sum = ('HomeGoals', 'sum'),
+      away_goals_sum = ('AwayGoals', 'sum')))
