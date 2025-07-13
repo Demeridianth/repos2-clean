@@ -67,3 +67,37 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# CRUD endpoint
+
+@app.get('/films', response_model=List[FilmOut])
+def read_films(db: Session = Depends(get_db)):
+    return db.query(FilmDB).all()
+
+@app.get('/films/{film_id}', response_model=FilmOut)
+def read_film(film_id: int, db: Session = Depends(get_db)):
+    film = db.query(FilmDB).filter(FilmDB.film_id == film_id)
+    if not film:
+        raise HTTPException(status_code=404, detail='Film not found')
+    return film
+
+@app.post('/films', response_model=FilmOut)
+def create_film(film: FilmCreate, db: Session = Depends(get_db)):
+    new_film = FilmDB(**film.model_dump())
+    db.add(new_film)
+    db.commit(new_film)
+    db.refresh(new_film)
+    return new_film
+
+@app.put('/films/{film_id}', response_model=FilmOut)
+def update_film(film_id: int, film: FilmUpdate, db: Session = Depends(get_db)):
+    db_film = db.query(FilmDB).filter(FilmDB.film_id == film_id).first()
+    if not db_film:
+        raise HTTPException(status_code=404, detail='Film not found')
+    update_data = film.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_film, key, value)
+    db.commit(db_film)
+    db.refresh(db_film)
+    return db_film

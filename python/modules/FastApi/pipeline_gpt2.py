@@ -63,7 +63,7 @@ def read_film(film_id: int, db: Session = Depends(get_db)):
 
 @app.post("/films", response_model=FilmOut)
 def create_film(film: FilmCreate, db: Session = Depends(get_db)):
-    new_film = FilmDB(**film.dict())
+    new_film = FilmDB(**film.model_dump())
     db.add(new_film)
     db.commit()
     db.refresh(new_film)
@@ -74,7 +74,7 @@ def update_film(film_id: int, film: FilmUpdate, db: Session = Depends(get_db)):
     db_film = db.query(FilmDB).filter(FilmDB.film_id == film_id).first()
     if not db_film:
         raise HTTPException(status_code=404, detail="Film not found")
-    update_data = film.dict(exclude_unset=True)
+    update_data = film.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_film, key, value)
     db.commit()
