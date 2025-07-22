@@ -61,3 +61,11 @@ ag_league.droplevel(0, axis=1).reset_index()        # to drop extra layers and g
  groupby(['season', 'HomeTeam'], as_index=False)
  .agg(home_goals_sum = ('HomeGoals', 'sum'),
       away_goals_sum = ('AwayGoals', 'sum')))
+
+
+# TRANSFORM
+pm = p_league.assign(
+    avg_team_goal = p_league.groupby(['HomeTeam'])['HomeGoals'].transform('mean'),
+    difference = lambda x: x['HomeGoals'] - x['avg_team_goal']
+)
+# allows creating aggregation columns with more ease

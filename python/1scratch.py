@@ -86,7 +86,7 @@ def read_film(film_id: int, db: Session = Depends(get_db)):
 def create_film(film: FilmCreate, db: Session = Depends(get_db)):
     new_film = FilmDB(**film.model_dump())
     db.add(new_film)
-    db.commit(new_film)
+    db.commit()
     db.refresh(new_film)
     return new_film
 
@@ -98,6 +98,15 @@ def update_film(film_id: int, film: FilmUpdate, db: Session = Depends(get_db)):
     update_data = film.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_film, key, value)
-    db.commit(db_film)
+    db.commit()
     db.refresh(db_film)
     return db_film
+
+@app.delete('/films/{film_id}', response_model=FilmOut)
+def delete_film(film_id: int, db: Session = Depends(get_db)):
+    film = db.query(FilmDB).filter(FilmDB.film_id == film_id).first()
+    if not film:
+        raise HTTPException(status_code=404, detail='Film not found')
+    db.delete(film)
+    db.commit()
+    return film
