@@ -51,12 +51,7 @@ def get_film(film_id: int, films=Depends(get_films_storage)):
 @app.post("/films", response_model=Film)
 def create_film(film: Film, films=Depends(get_films_storage)):
     new_film_id = max(f.film_id for f in films) + 1
-    new_film = Film(
-        film_id=new_film_id,
-        title=film.title,
-        description=film.description,
-        release_year=film.release_year,
-    )
+    new_film = Film(film_id=new_film_id, **film.model_dump(exclude={'film_id'}))
     films.append(new_film)
     return new_film
 
@@ -66,12 +61,9 @@ def update_film(film_id: int, updated_film: FilmUpdate, films=Depends(get_films_
     print("Received update:", updated_film)
     for film in films:
         if film.film_id == film_id:
-            if updated_film.title is not None:
-                film.title = updated_film.title
-            if updated_film.description is not None:
-                film.description = updated_film.description
-            if updated_film.release_year is not None:
-                film.release_year = updated_film.release_year
+            update_data = updated_film.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(film, key, value)
             return film
     raise HTTPException(status_code=404, detail="Film not found")
 

@@ -1,1 +1,3 @@
-# lets try from terminal and try to pull
+ingredients = ['meat', 'onions', 'salt', 'pepper', 'tomato paste', 'water']
+print(ingredients)
+    
