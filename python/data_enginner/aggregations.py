@@ -69,3 +69,35 @@ pm = p_league.assign(
     difference = lambda x: x['HomeGoals'] - x['avg_team_goal']
 )
 # allows creating aggregation columns with more ease
+
+
+# PIVOT TABLES      create excel like tables
+p_league.pivot_table(index='HomeTeam',
+                     columns='season',
+                     values='HomeGoals',
+                     aggfunc='sum',
+                     margins=True       # will add "ALL" statistic
+                    )
+
+# with query filter
+p_league.query("HomeTeam in ['Arsenal', 'Aston Villa']").pivot_table(index='HomeTeam',
+                     columns='season',
+                     values='HomeGoals',
+                     aggfunc='sum',
+                     margins=True
+                    )
+
+# multiple agg pivot table
+p_league.pivot_table(index='HomeTeam',
+                     columns='season',
+                     values='HomeGoals',
+                     aggfunc=('sum', 'mean'),       # multiple aggs
+                     margins=True)     
+
+# heatmap       will add colors, lower = red, higher = green
+p_league.query("HomeTeam in ['Arsenal', 'Aston Villa']").pivot_table(index='HomeTeam',
+                     columns='season',
+                     values='HomeGoals',
+                     aggfunc='sum',
+                     margins=True
+                    ).style.background_gradient(cmap='RdYlGn', axis=None)

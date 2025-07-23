@@ -110,3 +110,20 @@ def delete_film(film_id: int, db: Session = Depends(get_db)):
     db.delete(film)
     db.commit()
     return film
+
+@app.post('/inject_csv', response_model=List[FilmOut])
+def inject_csv(db: Session = Depends(get_db)):
+    df = pd.read_csv('films_pipe.csv', delimiter='|').iloc[:, :4].head()
+    injected = []
+    for row in df.itertuples(index=False):
+        film = FilmDB(
+            title = row.title,
+            description = row.description,
+            release_year = row.release_year
+        )
+        db.add(film)
+        injected.append(film) 
+    db.commit()
+    for film in injected:
+        db.refresh(film)
+    return injected

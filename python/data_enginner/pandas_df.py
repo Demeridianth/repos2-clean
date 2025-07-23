@@ -92,6 +92,7 @@ smokers_southeast = dt.query('smoker == "yes" and region == "southeast"')       
 oil.query('price > 93')['date']         # can add filter to grab one column
 
 
+
 # sorting
 oil.sort_index(ascending=False)         #from highest to lowest
 oil.sort_index(axis=1)         # axis 1 will sort column name
