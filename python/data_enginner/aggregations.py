@@ -101,3 +101,9 @@ p_league.query("HomeTeam in ['Arsenal', 'Aston Villa']").pivot_table(index='Home
                      aggfunc='sum',
                      margins=True
                     ).style.background_gradient(cmap='RdYlGn', axis=None)
+
+
+# MELT == unpivot table
+pm.reset_index().melt(id_vars='HomeTeam', value_vars = ['2008/2009', '2009/2010', '2010/2011'], value_name= 'avg_goals')
+
+

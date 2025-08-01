@@ -1,5 +1,10 @@
 from typing import Any
 import random
+
+def __iter__(self):
+    return iter(self.items)
+
+
 # class Orange:
 #     def __init__(self, weight, color, mold):
 #         self.color = color
