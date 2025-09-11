@@ -13,6 +13,8 @@ engine = create_engine(TEST_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Pytest fixtures
+
+# drops if anything in test table, creates a new test table and then drops it again
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
     Base.metadata.drop_all(bind=engine)
@@ -20,6 +22,7 @@ def setup_test_db():
     yield
     Base.metadata.drop_all(bind=engine)
 
+# creates MOCK test session
 @pytest.fixture(scope='function')
 def db_session():
     db = TestingSessionLocal()
@@ -28,6 +31,7 @@ def db_session():
     finally:
         db.close()
 
+# replaces REAL one in the program with the MOCK one
 @pytest.fixture(scope='function')
 def client(db_session):
     def override_get_db():
@@ -38,6 +42,7 @@ def client(db_session):
 
     app.dependency_overrides[get_db] = override_get_db
     yield TestClient(app)
+
 
 # CRUD tests
 
@@ -51,3 +56,22 @@ def test_create_film(client):
     data = response.json()
     assert data["title"] == "Inception"
     assert "film_id" in data
+
+def test_read_films(client):
+    client.post('/films', json={'tile': "Movie1", 'description': 'its a movie', 'release_year': 1999})
+    response = client.get('/films')
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) >= 1
+
+def test_read_film_by_id(client):
+    create_response = client.post('/films', json={'tile': "Movie1", 'description': 'its a movie', 'release_year': 1999})
+    film_id = create_response.json()['film_id']
+
+    get_response = client.get(f'/films/{film_id}')
+    assert get_response.status_code == 200
+    film = get_response.json()
+    assert film['title'] == 'Movie1'
+
+
+
