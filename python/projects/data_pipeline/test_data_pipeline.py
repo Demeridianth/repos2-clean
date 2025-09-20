@@ -73,5 +73,22 @@ def test_read_film_by_id(client):
     film = get_response.json()
     assert film['title'] == 'Movie1'
 
+def test_update_film(client):
+    create_response = client.post('/films', json={'title': "Movie1", 'description': 'its a movie', 'release_year': 1999})
+    film_id = create_response.json()['film_id']
 
+    update_response = client.put(f'films/{film_id}', json={'release_year': 2000})
+    assert update_response.status_code == 200
+    updated = update_response.json()
+    assert updated['release_year'] == 2000
+    assert updated['title'] == 'Movie1'
+
+def test_delete_film(client):
+    create_response = client.post('/films', json={'tile': "Movie1", 'description': 'its a movie', 'release_year': 1999})
+    film_id = create_response.json()['film_id']
+
+    deleted_response = client.delete('/film/{film_id}')
+    assert deleted_response.status_code == 200
+    get_deleted_response = client.get('/films/{film_id}')
+    assert get_deleted_response.status_code == 404
 
