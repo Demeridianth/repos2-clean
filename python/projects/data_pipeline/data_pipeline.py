@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 import pandas as pd
 
@@ -56,8 +56,7 @@ class FilmUpdate(BaseModel):  # no inheritance, all optional for PATCH-like upda
 class FilmOut(FilmBase):
     film_id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ---------------------------
 # Dependency
