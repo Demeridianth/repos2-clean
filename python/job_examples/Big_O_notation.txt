@@ -1,0 +1,99 @@
+1. Constant Time: 
+O(1)
+O(1)
+
+Description: The algorithm's running time does not depend on the input size.
+
+Example: Accessing an element in an array by index.
+
+Visualization: The running time remains flat, no matter how large the input size gets.
+
+2. Logarithmic Time: 
+O(log⁡n)
+O(logn)
+
+Description: The algorithm's running time grows logarithmically with the input size. It typically occurs in divide-and-conquer algorithms.
+
+Example: Binary search.
+
+Visualization: The running time increases slowly as the input size grows.
+
+3. Linear Time: 
+O(n)
+O(n)
+
+Description: The running time grows linearly with the size of the input.
+
+Example: Traversing all elements in an array.
+
+Visualization: The running time grows proportionally to the input size.
+
+4. Log-linear Time: 
+O(nlog⁡n)
+O(nlogn)
+
+Description: Often seen in algorithms that perform a linear pass combined with a logarithmic operation, such as merge sort.
+
+Example: Merge sort, quicksort (average case).
+
+Visualization: The running time grows faster than linear but slower than quadratic.
+
+5. Quadratic Time: 
+O(n2)
+O(n
+2
+)
+
+Description: The running time grows quadratically with the input size. This is common in algorithms with nested loops.
+
+Example: Bubble sort, selection sort.
+
+Visualization: The running time increases sharply with input size.
+
+6. Cubic Time: 
+O(n3)
+O(n
+3
+)
+
+Description: The running time grows cubically with the input size. This occurs with triple nested loops.
+
+Example: Matrix multiplication (naive approach).
+
+Visualization: The running time becomes extremely large as the input grows.
+
+7. Exponential Time: 
+O(2n)
+O(2
+n
+)
+
+Description: The running time doubles with each additional input element. This is common in brute force algorithms.
+
+Example: Solving the traveling salesman problem using brute force.
+
+Visualization: The running time skyrockets as the input size increases.
+
+8. Factorial Time: 
+O(n!)
+O(n!)
+
+Description: The running time grows as the factorial of the input size. This is rare and usually associated with brute force solutions to combinatorial problems.
+
+Example: Generating all permutations of a set.
+
+Visualization: The growth rate is incredibly steep, even for small inputs.
+
+Special Cases
+
+Amortized Time: The average time per operation over a sequence of operations. For example, in a dynamic array, most operations are 
+O(1)
+O(1), but resizing the array can be 
+O(n)
+O(n).
+
+Space Complexity: Big O is also used to describe the space requirements of an algorithm, such as 
+O(n)
+O(n) for an array or 
+O(1)
+O(1) for in-place sorting.
