@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from data_pipeline import app, Base, get_db
+from python.projects.data_pipeline.main import app, Base, get_db
 
 # ---------------------------
 # PostgreSQL test database

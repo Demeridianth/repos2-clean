@@ -5,12 +5,39 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 import pandas as pd
 
+
+# uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4 --reload
+# locust -f test_load_locust.py
+
+# for test load
+# --workers 4 → four separate processes
+
+# --reload → optional for development
+
+# Each worker will use its own connection pool, so total possible DB connections = workers * pool_size + max_overflow
+
+# For 4 workers:
+
+# Max persistent connections = 4 × 20 = 80
+
+# Max temporary connections = 4 × 10 = 40
+
+# Total max = 120 simultaneous DB connections
+
+
 # ---------------------------
 # Database setup
 # ---------------------------
 DATABASE_URL = 'postgresql://postgres:9922296@localhost:5432/dvd_rental'
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=30,        # persistent connections
+    max_overflow=40,     # extra temporary connections
+    pool_timeout=30,     # seconds to wait for a connection
+    pool_pre_ping=True   # auto-check connections
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -136,3 +163,17 @@ def inject_csv(db: Session = Depends(get_db)):
     for film in injected:
         db.refresh(film)
     return injected
+
+
+# for debugging
+def display_filtered_table():
+    with engine.connect() as conn:
+        query = """
+        SELECT *
+        FROM films
+        WHERE release_year > 2010
+        ORDER BY release_year
+        LIMIT 5
+        """
+        df = pd.read_sql(query, conn)
+        print(df)

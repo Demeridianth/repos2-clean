@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from data_pipeline import app, Base, get_db
+from python.projects.data_pipeline.main import app, Base, get_db
 
 
 # PostgreSQL test database
@@ -87,8 +87,20 @@ def test_delete_film(client):
     create_response = client.post('/films', json={'tile': "Movie1", 'description': 'its a movie', 'release_year': 1999})
     film_id = create_response.json()['film_id']
 
-    deleted_response = client.delete('/film/{film_id}')
+    deleted_response = client.delete(f'/film/{film_id}')
     assert deleted_response.status_code == 200
-    get_deleted_response = client.get('/films/{film_id}')
+    get_deleted_response = client.get(f'/films/{film_id}')
     assert get_deleted_response.status_code == 404
+
+def test_inject_csv(client):
+    response = client.post('/films/inject_csv')
+    assert response.status_code == 200
+    films = response.json()
+    assert isinstance(films, list)
+    assert len(films) <= 5
+    for film in films:
+        assert 'title' in film
+        assert 'description' in film
+
+
 
