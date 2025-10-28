@@ -103,7 +103,7 @@ def read_films(db: Session = Depends(get_db)):
     """Get a list of all films."""
     return db.query(FilmDB).all()
 
-@app.get('/films/{film_id}', response_model=FilmOut, tags=["Films"])
+@app.get('/films/{film_id}', response_model=FilmOut, tags=["Films"]) 
 def read_film(film_id: int, db: Session = Depends(get_db)):
     """Get a single film by ID."""
     film = db.query(FilmDB).filter(FilmDB.film_id == film_id).first()

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cipher App</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+  <h1>Cipher Encoder/Decoder</h1>
+
+  <form id="cipherForm">
+    <div class="form-group">
+      <label for="text">Text:</label>
+      <input type="text" id="text" name="text" required>
+    </div>
+
+    <div class="form-group">
+      <label for="keyword">Keyword (Vigenère only):</label>
+      <input type="text" id="keyword" name="keyword">
+    </div>
+
+    <div class="form-group">
+      <label>Cipher Type:</label>
+      <div class="radio-group">
+        <label><input type="radio" name="cipher_type" value="vigenere" checked> Vigenère</label>
+        <label><input type="radio" name="cipher_type" value="caesar"> Caesar</label>
+        <label><input type="radio" name="cipher_type" value="secret"> Secret Key</label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Action:</label>
+      <div class="radio-group">
+        <label><input type="radio" name="action_type" value="encrypt" checked> Encrypt</label>
+        <label><input type="radio" name="action_type" value="decrypt"> Decrypt</label>
+      </div>
+    </div>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <div class="result" id="result"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cipher App</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Python Cipher App</h1>
+        <form id="cipher-form">
+            <label for="text">Enter Text:</label>
+            <input type="text" id="text" required>
+
+            <label for="keyword">Keyword (Vigenère only):</label>
+            <input type="text" id="keyword">
+
+            <label for="cipher_type">Select Cipher:</label>
+            <select id="cipher_type" required>
+                <option value="vigenere">Vigenère Cipher</option>
+                <option value="ceaser">Caesar Cipher</option>
+                <option value="secret">Secret Key Cipher</option>
+            </select>
+
+            <label>Action:</label>
+            <div class="radio-group">
+                <input type="radio" name="action_type" id="encrypt" value="encrypt" checked>
+                <label for="encrypt">Encrypt</label>
+
+                <input type="radio" name="action_type" id="decrypt" value="decrypt">
+                <label for="decrypt">Decrypt</label>
+            </div>
+
+            <button type="submit">Submit</button>
+        </form>
+
+        <div id="result" class="result" style="display:none;">
+            <strong>Result:</strong>
+            <p id="result-text"></p>
+        </div>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>

@@ -1,11 +1,22 @@
-from pathlib import Path
+from dataclasses import dataclass
 
-path = Path(r'C:\test\books.txt')
 
-with path.open() as file:
-    books = file.read().splitlines()
-    books_clean = list(dict.fromkeys(books))
+class Employee:
+    id: int
+    name: str
+    position: str
+    salary: float
 
-with path.open('w') as file:
-    for book in books_clean:
-        file.write(f'{book}\n')
+class Staff:
+    def __init__(self):
+        self.staff_list = []
+
+    def get_all_staff(self):
+        return self.staff_list
+    
+class ConsoleInterface:
+    @staticmethod
+    def get_user_input(prompt, converter: str):
+        return converter(input(prompt))
+    
+    

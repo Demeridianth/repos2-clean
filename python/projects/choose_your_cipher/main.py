@@ -1,210 +1,157 @@
 import string
 import random
 from itertools import cycle
-from flask import Flask, request, render_template
+from pydantic import BaseModel
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-app = Flask(__name__)
+app = FastAPI()
 
+# ======================
+# CORS for frontend dev
+# ======================
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, set your frontend URL
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-""" Program that let's the user choose a cipher out of 3 different ones (Vigenere Cipher, Ceaser Cipher, Secret Key cipher) 
-to encode the text of user's choosing and decode it back """
-
-
+# ======================
+# Cipher logic
+# ======================
 class Ciphers:
-    def __init__(self) -> None:
+    def __init__(self):
         self.lower_letters = list(string.ascii_lowercase)
         self.upper_letters = list(string.ascii_uppercase)
         self.digits = list(string.digits)
-        self.upper_lower_digits = list(string.ascii_lowercase + string.ascii_uppercase + string.digits)
-        self.punctuation = list(string.punctuation)
-        
-    @staticmethod
-    def get_user_input(prompt: str, converter=str) -> str:
-        return converter(input(prompt))
+        self.all_chars = self.lower_letters + self.upper_letters + self.digits
 
-
-    # Vigenère Cipher
-
-    # Instead of shifting characters by a fixed amount (like Caesar Cipher), the Vigenère Cipher shifts each letter based on a repeating      keyword. Each letter in the keyword determines the shift for the corresponding letter in the plaintext.
-
+    # --- Vigenère Cipher ---
     def encrypt_vigenere_cipher(self, text: str, keyword: str) -> str:
-        keyword_shift_list = [self.lower_letters.index(char) for char in keyword]
-        iterated_shift_number = cycle(keyword_shift_list)
-        encoded_text = []
-        
+        keyword_shift = [self.lower_letters.index(c.lower()) for c in keyword if c.lower() in self.lower_letters]
+        encoded = []
+        iter_shift = cycle(keyword_shift)
         for char in text:
-            try:
-                shift = next(iterated_shift_number)
-            except StopIteration:
-                break
-                
-
-            # check for lower letters
+            shift = next(iter_shift, 0)
             if char in self.lower_letters:
-                new_index = self.lower_letters.index(char)
-                encoded_text.append(self.lower_letters[(new_index + shift) % len(self.lower_letters)])
-
-            # check for upper letters
+                idx = self.lower_letters.index(char)
+                encoded.append(self.lower_letters[(idx + shift) % 26])
             elif char in self.upper_letters:
-                new_index = self.upper_letters.index(char)
-                encoded_text.append(self.upper_letters[(new_index + shift) % len(self.upper_letters)])
-
-            # check for digits
+                idx = self.upper_letters.index(char)
+                encoded.append(self.upper_letters[(idx + shift) % 26])
             elif char in self.digits:
-                new_index = self.digits.index(char)
-                encoded_text.append(self.digits[(new_index + shift) % len(self.digits)])
-            
-            # keep spaces and punctuation as they were
+                idx = self.digits.index(char)
+                encoded.append(self.digits[(idx + shift) % 10])
             else:
-                encoded_text.append(char)
-        
-        return ''.join(encoded_text)
-    
-    def decrypt_vigenere_cipher(self, encrypted_text, keyword):
-        keyword_shift_list = [self.lower_letters.index(char) for char in keyword]
-        iterated_shift_number = cycle(keyword_shift_list)
-        decyrpted_text = []
+                encoded.append(char)
+        return ''.join(encoded)
 
-        for char in encrypted_text:
-            try:
-                shift = next(iterated_shift_number)
-            except StopIteration:
-                break
-
-            # check for lower letters
-            if char in self.lower_letters:
-                new_index = self.lower_letters.index(char)
-                decyrpted_text.append(self.lower_letters[(new_index - shift) % len(self.lower_letters)])
-
-            # check for upper letters
-            elif char in self.upper_letters:
-                new_index = self.upper_letters.index(char)
-                decyrpted_text.append(self.upper_letters[(new_index - shift) % len(self.upper_letters)])
-
-            # check for digits
-            elif char in self.digits:
-                new_index = self.digits.index(char)
-                decyrpted_text.append(self.digits[(new_index - shift) % len(self.digits)])
-
-            # keep spaces and punctuation as they were
-            else:
-                decyrpted_text.append(char)
-
-        return ''.join(decyrpted_text)
-
-
-    # Ceaser Cipher
-
-    def encrypt_ceaser_cipher(self, text: str) -> str:
-        encoded_text = []
+    def decrypt_vigenere_cipher(self, text: str, keyword: str) -> str:
+        keyword_shift = [self.lower_letters.index(c.lower()) for c in keyword if c.lower() in self.lower_letters]
+        decoded = []
+        iter_shift = cycle(keyword_shift)
         for char in text:
-            # check for lowercase letters
+            shift = next(iter_shift, 0)
             if char in self.lower_letters:
-                letters_index = self.lower_letters.index(char) 
-                encoded_text.append(self.lower_letters[letters_index - 3]) 
-
-            # check for uppercase letters
+                idx = self.lower_letters.index(char)
+                decoded.append(self.lower_letters[(idx - shift) % 26])
             elif char in self.upper_letters:
-                letters_index = self.upper_letters.index(char) 
-                encoded_text.append(self.upper_letters[letters_index - 3]) 
-
-            # check for digits
+                idx = self.upper_letters.index(char)
+                decoded.append(self.upper_letters[(idx - shift) % 26])
             elif char in self.digits:
-                digit_index = self.digits.index(char) 
-                encoded_text.append(self.digits[digit_index - 3]) 
-
+                idx = self.digits.index(char)
+                decoded.append(self.digits[(idx - shift) % 10])
             else:
-                encoded_text.append(char)
-        return ''.join(encoded_text)
-    
+                decoded.append(char)
+        return ''.join(decoded)
 
-    def decrypt_ceaser_cipher(self, text: str) -> str:
-        decoded_text = []
+    # --- Caesar Cipher ---
+    def encrypt_caesar_cipher(self, text: str) -> str:
+        result = []
         for char in text:
-            # check for upper letters:
-            if char in self.upper_letters:
-                letters_index = self.upper_letters.index(char)
-                decoded_text.append(self.upper_letters[(letters_index + 3) % len(self.lower_letters)])
-
-            # check for lower letters
-            elif char in self.lower_letters:
-                letters_index = self.lower_letters.index(char)
-                decoded_text.append(self.lower_letters[(letters_index + 3) % len(self.lower_letters)])
-
-            # check for digits
+            if char in self.lower_letters:
+                idx = self.lower_letters.index(char)
+                result.append(self.lower_letters[(idx - 3) % 26])
+            elif char in self.upper_letters:
+                idx = self.upper_letters.index(char)
+                result.append(self.upper_letters[(idx - 3) % 26])
             elif char in self.digits:
-                digit_index = self.digits.index(char)
-                decoded_text.append(self.digits[(digit_index + 3) % len(self.digits)])
-
+                idx = self.digits.index(char)
+                result.append(self.digits[(idx - 3) % 10])
             else:
-                decoded_text.append(char)
-        return ''.join(decoded_text)
+                result.append(char)
+        return ''.join(result)
 
+    def decrypt_caesar_cipher(self, text: str) -> str:
+        result = []
+        for char in text:
+            if char in self.lower_letters:
+                idx = self.lower_letters.index(char)
+                result.append(self.lower_letters[(idx + 3) % 26])
+            elif char in self.upper_letters:
+                idx = self.upper_letters.index(char)
+                result.append(self.upper_letters[(idx + 3) % 26])
+            elif char in self.digits:
+                idx = self.digits.index(char)
+                result.append(self.digits[(idx + 3) % 10])
+            else:
+                result.append(char)
+        return ''.join(result)
 
-    # Secret Key Cipher
-
+    # --- Secret Key Cipher ---
     def encrypt_secret_key(self, text: str) -> str:
         random.seed(22)
-        secret_key = ''.join(random.sample(self.upper_lower_digits, len(self.upper_lower_digits)))
-        characters = self.upper_lower_digits
-        encryptor = {characters[char]: secret_key[char] for char in range(len(characters))}
-        result = [encryptor.get(char, char) for char in text]
+        key = ''.join(random.sample(self.all_chars, len(self.all_chars)))
+        mapping = {self.all_chars[i]: key[i] for i in range(len(self.all_chars))}
+        return ''.join([mapping.get(c, c) for c in text])
 
-        return ''.join(result)
-    
-
-    def decrypt_secret_key(self, encrypted_text: str) -> str:
+    def decrypt_secret_key(self, text: str) -> str:
         random.seed(22)
-        secret_key = ''.join(random.sample(self.upper_lower_digits, len(self.upper_lower_digits)))
-        characters = self.upper_lower_digits
-        decryptor = {secret_key[char]: characters[char] for char in range(len(secret_key))}
-        result = [decryptor.get(char, char) for char in encrypted_text]
+        key = ''.join(random.sample(self.all_chars, len(self.all_chars)))
+        mapping = {key[i]: self.all_chars[i] for i in range(len(self.all_chars))}
+        return ''.join([mapping.get(c, c) for c in text])
 
-        return ''.join(result)
-    
 
 ciphers = Ciphers()
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    result = ''
-    if request.method == 'POST':
-        text = request.form['text']
-        keyword = request.form.get('keyword', '')
-        cipher_type = request.form['cipher_type']
-        action_type = request.form.get('action_type', '')
+# ======================
+# Pydantic Models
+# ======================
+class CipherRequest(BaseModel):
+    text: str
+    action_type: str  # "encrypt" or "decrypt"
+    cipher_type: str  # "vigenere", "caesar", "secret"
+    keyword: str = ""  # only used for Vigenère
 
-        if cipher_type == 'vigenere':
-            if action_type == 'encrypt':
-                result = ciphers.encrypt_vigenere_cipher(text, keyword)
-            elif action_type == 'decrypt':
-                result = ciphers.decrypt_vigenere_cipher(text, keyword)
-        if cipher_type == 'ceaser':
-            if action_type == 'encrypt':
-                result = ciphers.encrypt_ceaser_cipher(text)
-            elif action_type == 'decrypt':
-                result = ciphers.decrypt_ceaser_cipher(text)   
-        if cipher_type == 'secret':
-            if action_type == 'encrypt':
-                result = ciphers.encrypt_secret_key(text)
-            elif action_type == 'decrypt':
-                result = ciphers.decrypt_secret_key(text)
+class CipherResponse(BaseModel):
+    result: str
 
-    return render_template('index.html', result=result)
-        
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", debug=True)
+# ======================
+# API Endpoint
+# ======================
+@app.post("/cipher", response_model=CipherResponse)
+def cipher_endpoint(req: CipherRequest):
+    text = req.text
+    cipher_type = req.cipher_type.lower()
+    action_type = req.action_type.lower()
+    keyword = req.keyword
+    result = ""
 
+    if cipher_type == "vigenere":
+        if action_type == "encrypt":
+            result = ciphers.encrypt_vigenere_cipher(text, keyword)
+        else:
+            result = ciphers.decrypt_vigenere_cipher(text, keyword)
+    elif cipher_type == "caesar":
+        if action_type == "encrypt":
+            result = ciphers.encrypt_caesar_cipher(text)
+        else:
+            result = ciphers.decrypt_caesar_cipher(text)
+    elif cipher_type == "secret":
+        if action_type == "encrypt":
+            result = ciphers.encrypt_secret_key(text)
+        else:
+            result = ciphers.decrypt_secret_key(text)
 
-# http://127.0.0.1:5000/
-    
-            
-            
-
-
-
-
-
-    
-         
-
+    return {"result": result}
