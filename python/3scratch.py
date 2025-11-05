@@ -1,7 +1,8 @@
 import json 
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm 
+from passlib.context import CryptContext
 from typing import List, Optional
 import os
 
