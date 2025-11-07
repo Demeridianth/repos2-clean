@@ -23,8 +23,11 @@ AsyncSessionLocal = sessionmaker(
 Base = declarative_base()
 
 # ---------------------------
-# SQLAlchemy model
+# SQLAlchemy model          
 # ---------------------------
+# like a filter when connecting to Database
+# maps to a database table to a Python class — for example, FilmDB → films.
+# Lets you interact with the database using Python objects instead of raw SQL.
 class FilmDB(Base):
     __tablename__ = "films"
 
@@ -36,6 +39,9 @@ class FilmDB(Base):
 # ---------------------------
 # Pydantic models
 # ---------------------------
+# like a filter when connecting to a user/the frontend
+# They handle data validation, conversion, and serialization —
+# essentially, they make sure the data going in and out of your API is correct, clean, and safe.
 class FilmBase(BaseModel):
     title: str
     description: Optional[str] = None

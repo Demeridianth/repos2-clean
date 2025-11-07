@@ -1,9 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 import pandas as pd
+
+
 
 
 # uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4 --reload
@@ -163,6 +165,37 @@ def inject_csv(db: Session = Depends(get_db)):
     for film in injected:
         db.refresh(film)
     return injected
+
+# search/query endpoint
+@app.get('/films/search', response_model=List[FilmOut], tags=['Films'])
+def search_films(
+    # None = not required, if (..., min_length) = required
+    min_year: Optional[int] = Query(None, description="Filter by minimum release year"),
+    max_year: Optional[int] = Query(None, description="Filter by maximum release year"),
+    title: Optional[str] = Query(None, description="Search by partial title"),
+    db: Session = Depends(get_db)):
+    """
+    Search films by optional filters:
+    - genre (partial match)
+    - release year range
+    - title (partial match)
+    Example:
+        /films/search?genre=Action&min_year=2010
+    """
+
+    query = db.query(FilmDB)
+
+    if min_year:
+        query = query.filter(FilmDB.release_year >= min_year)
+    if max_year:
+        query = query.filter(FilmDB.release_year <= max_year)
+    if title:
+        query = query.filter(FilmDB.title.ilike(f"%{title}%"))
+    result = query.all()
+
+    if not result:
+        raise HTTPException(status_code=404, detail='No films match your search criteria')
+    return result
 
 
 # for debugging
