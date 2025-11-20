@@ -15,6 +15,7 @@ app.add_middleware(
     allow_origins=["*"],  # In production, set your frontend URL
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 # ======================

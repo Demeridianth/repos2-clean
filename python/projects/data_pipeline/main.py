@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Query
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 import pandas as pd
@@ -42,6 +42,41 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+""" for multiple tables"""
+# from sqlalchemy import Column, Integer, String, ForeignKey
+# from sqlalchemy.orm import relationship
+# from .database import Base
+
+
+# class FilmDB(Base):
+#     __tablename__ = "films"
+
+#     film_id = Column(Integer, primary_key=True, index=True)
+#     title = Column(String, nullable=False)
+#     description = Column(String)
+#     release_year = Column(Integer)
+
+#     # Optional: relationship to Actor table (many-to-many via film_actor)
+#     actors = relationship("FilmActorDB", back_populates="film")
+
+# class ActorDB(Base):
+#     __tablename__ = "actors"
+
+#     actor_id = Column(Integer, primary_key=True, index=True)
+#     first_name = Column(String, nullable=False)
+#     last_name = Column(String, nullable=False)
+
+#     films = relationship("FilmActorDB", back_populates="actor")
+
+# class FilmActorDB(Base):
+#     __tablename__ = "film_actor"
+
+#     film_id = Column(Integer, ForeignKey("films.film_id"), primary_key=True)
+#     actor_id = Column(Integer, ForeignKey("actors.actor_id"), primary_key=True)
+
+#     film = relationship("FilmDB", back_populates="actors")
+#     actor = relationship("ActorDB", back_populates="films")
 
 # ---------------------------
 # SQLAlchemy model

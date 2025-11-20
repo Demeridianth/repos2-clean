@@ -41,3 +41,17 @@ transations = (transactions
 # Seaborn style (adds background) add before code ADN meplotlib background
 sns.set_style('darkgrid')
 matplotlib.style.use('fivethirtyeight')
+
+# SUBPLOTS breking dataframe into several charts
+transations = (transactions
+        .query('store_nbr in [44, 47] and date.dt.year == 2014')
+        .pivot(index='date', columns='store_nbr', values='transactions')
+        .plot(
+            subplots = True,
+            layout = (1, 2),     # one row, 2 charts
+            sharey = True,       # both charts will share one number grid
+            figsize = (10, 10)   # size of charts      
+        ))
+
+
+# CHART TYPES
