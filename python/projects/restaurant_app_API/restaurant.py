@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Path
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Mapped, mapped_column
@@ -43,29 +43,35 @@ Base = declarative_base()
 # SQLAlchemy models       
 # ---------------------------
 
-""" ADD NEW Mapped, mapped_column, """
-""" ADD relationship, foreign_key"""
-""" CREATE menus table in Postgres"""
 
 # Restaurants
 class RestaurantsDB(Base):
     __tablename__ = "restaurants"
 
-    restaurant_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    rating = Column(Float, nullable=False)
-    cuisine = Column(String, nullable=False)
+    restaurant_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    rating: Mapped[float] = mapped_column(Float, nullable=False)
+    cuisine: Mapped[str] = mapped_column(String, nullable=False)
 
-    manus = relationship('MenuDB', back_populates='restaurants')
+    # 1 restaurant -> many menus
+    menus: Mapped[List['MenuDB']] = relationship(back_populates='restaurant', cascade='all, delete_orphan')
+    # all, delete_orphan = “When I add, update, or delete a Restaurant, apply those operations to related Menu rows automatically.”
+    # “If a Menu item no longer belongs to any Restaurant, DELETE it from the DB automatically.”
 
 # Menus
 class MenuDB(Base):
     __tablename__ = "menus"
 
-    dish_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    price = Column(Float, nullable=False)
-    optional_description = Column(String)
+    dish_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    dish_name: Mapped[str] = mapped_column(String, nullable=False)
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    optional_description: Mapped[str | None] = mapped_column(String)
+
+     # FK to restaurants table
+    restaurant_id: Mapped[int] = mapped_column(ForeignKey('restaurants.restaurant_id'), nullable=False)
+
+    # Many manus -> 1 restaurant
+    restaurant: Mapped['RestaurantsDB'] = relationship(back_populates='menus')
 
 
 
@@ -93,7 +99,7 @@ class RestaurantOut(RestaurantBase):
 
 # Menus
 class MenuBase(BaseModel):
-    name: str
+    dish_name: str
     price: float
     optional_description: Optional[str]
 
@@ -101,7 +107,7 @@ class MenuCreate(MenuBase):
     pass
 
 class MenuUpdate(BaseModel):
-    name: Optional[str]
+    dish_name: Optional[str]
     price: Optional[float]
     optional_description: Optional[str]
 
@@ -124,9 +130,26 @@ async def get_db():
 
 @app.get('/restaurants', response_model=List[RestaurantOut])
 async def get_restaurants(db: AsyncSession = Depends(get_db)):
+    """get all restaurants"""
     result = await db.execute(select(RestaurantsDB))
-    restaurants = result.scalars().all
+    restaurants = result.scalars().all()
+    # scalars transform tuples into simple values
     return restaurants
 
-@app.get('restaurants/{id}/menu', response_model=List[MenuOut])
-async def get_restaurant_menu(restaurant_id: int,  db: AsyncSession = Depends(get_db)):
+@app.get('/restaurants/{id}/menu', response_model=List[MenuOut])
+async def get_restaurant_menu(restaurant_id: int = Path(..., title='ID of the restaurant'), db: AsyncSession = Depends(get_db)):
+    """get all dishes from a restaurant by id"""
+
+    # Optional: check if restaurant exists first
+    result = await db.execute(
+        select(RestaurantsDB).where(RestaurantsDB.restaurant_id == restaurant_id)
+    )
+    restaurant = result.scalar_one_or_none()
+    if restaurant is None:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    
+    result = await db.execute(select(MenuDB).where(MenuDB.restaurant_id == restaurant_id))
+    menu = result.scalars().all()
+    if not menu:
+        return []
+    return menu
