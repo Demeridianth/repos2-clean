@@ -7,6 +7,8 @@ from sqlalchemy.future import select
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 
+"""sqlalchemy models, pydantic models for order + order_items"""
+
 
 # ---------------------------
 # FastAPI app
@@ -26,7 +28,7 @@ app.add_middleware(
     allow_origins=["*"],    # In production, set your frontend URL, like   allow_origins=["https://myfrontend.com"]
     allow_methods=["*"],    # Which HTTP methods are allowed (GET, POST, etc.)
     allow_headers=["*"],    # Which headers are allowed (like Authorization)
-    allow_credential=True,  # Allow cookies or authentication headers
+    allow_credentials=True,  # Allow cookies or authentication headers
 )
 
 
@@ -49,12 +51,12 @@ class RestaurantsDB(Base):
     __tablename__ = "restaurants"
 
     restaurant_id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String, nullable=False)
+    restaurant_name: Mapped[str] = mapped_column(String, nullable=False)
     rating: Mapped[float] = mapped_column(Float, nullable=False)
     cuisine: Mapped[str] = mapped_column(String, nullable=False)
 
     # 1 restaurant -> many menus
-    menus: Mapped[List['MenuDB']] = relationship(back_populates='restaurant', cascade='all, delete_orphan')
+    menus: Mapped[List['MenuDB']] = relationship(back_populates='restaurant', cascade='all, delete-orphan', single_parent=True)
     # all, delete_orphan = “When I add, update, or delete a Restaurant, apply those operations to related Menu rows automatically.”
     # “If a Menu item no longer belongs to any Restaurant, DELETE it from the DB automatically.”
 
@@ -81,7 +83,7 @@ class MenuDB(Base):
 
 # Restaurants
 class RestaurantBase(BaseModel):
-    name: str
+    restaurant_name: str
     rating: float
     cuisine: str
 
@@ -89,7 +91,7 @@ class RestaurantCreate(RestaurantBase):
     pass
 
 class RestaurantUpdate(BaseModel):
-    name: Optional[str]
+    restaurant_name: Optional[str]
     rating: Optional[float]
     cuisine: Optional[str]
 
@@ -136,7 +138,7 @@ async def get_restaurants(db: AsyncSession = Depends(get_db)):
     # scalars transform tuples into simple values
     return restaurants
 
-@app.get('/restaurants/{id}/menu', response_model=List[MenuOut])
+@app.get('/restaurants/{restaurant_id}/menu', response_model=List[MenuOut])
 async def get_restaurant_menu(restaurant_id: int = Path(..., title='ID of the restaurant'), db: AsyncSession = Depends(get_db)):
     """get all dishes from a restaurant by id"""
 
