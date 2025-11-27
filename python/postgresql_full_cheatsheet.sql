@@ -1,3 +1,35 @@
+--add foreign key
+ALTER TABLE table_name
+ADD COLUMN new_column_name
+
+ALTER TABLE table_name
+ADD CONSTRAINT fk_constraint_name 
+FOREIGN KEY(new_column_name)
+REFERENCES table_that_your_are_refering_to(column_name)
+
+--create a table with a foreign key
+CREATE TABLE table_name
+(
+    item_id int PRIMARY KEY,
+    product_id REFERENCES products(product_id)
+)
+-- OR
+
+CREATE TABLE table_name
+(
+    item_id int PRIMARY KEY,
+    product_id int,
+    FOREIGN KEY(product_id)
+    REFERENCES products(product_id)
+)
+
+-- TIMESTAMP
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 
 -- PostgreSQL / SQL Complete Cheatsheet
 

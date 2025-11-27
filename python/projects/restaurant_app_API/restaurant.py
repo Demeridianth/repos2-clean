@@ -1,13 +1,15 @@
 from fastapi import FastAPI, HTTPException, Depends, Path
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, func
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.future import select
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
+from datetime import datetime
 
-"""sqlalchemy models, pydantic models for order + order_items"""
+"""add customer ID and REstaurant ID to order table (rest id is foreign key, also add this to sqlmodels) add payment method and adress MAYBE """
+"""pydantic models for order + order_items, endpoint"""
 
 
 # ---------------------------
@@ -45,7 +47,6 @@ Base = declarative_base()
 # SQLAlchemy models       
 # ---------------------------
 
-
 # Restaurants
 class RestaurantsDB(Base):
     __tablename__ = "restaurants"
@@ -74,6 +75,29 @@ class MenuDB(Base):
 
     # Many manus -> 1 restaurant
     restaurant: Mapped['RestaurantsDB'] = relationship(back_populates='menus')
+    item: Mapped['OrderItemDB'] = relationship(back_populates='dish')
+
+# Orders
+class OrderDB(Base):
+    __tablename__ = "orders"
+
+    order_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    status: Mapped[str] = mapped_column(String, default='pending')
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())    
+
+    items: Mapped[List['OrderItemDB']] = relationship(back_populates='order', cascade='all, delete-orphan', single_parent=True)
+
+# Order Items
+class OrderItemDB(Base):
+    __table__ = "order_items"
+
+    item_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    quantity: Mapped[int] = mapped_column(nullable=False)
+    order_id: Mapped[int] = mapped_column(ForeignKey('orders.order_id'), nullable=False)
+    dish_id: Mapped[int] = mapped_column(ForeignKey('menus.dish_id'), nullable=False)
+
+    order: Mapped['OrderDB'] = relationship(back_populates='items')
+    dish: Mapped['MenuDB'] = relationship(back_populates='item')
 
 
 
@@ -81,7 +105,9 @@ class MenuDB(Base):
 # Pydantic models
 # ---------------------------
 
+# ---------------------------
 # Restaurants
+# ---------------------------
 class RestaurantBase(BaseModel):
     restaurant_name: str
     rating: float
@@ -99,7 +125,9 @@ class RestaurantOut(RestaurantBase):
     restaurant_id: int
     model_config = ConfigDict(from_attributes=True)
 
+# ---------------------------
 # Menus
+# ---------------------------
 class MenuBase(BaseModel):
     dish_name: str
     price: float
@@ -116,6 +144,12 @@ class MenuUpdate(BaseModel):
 class MenuOut(MenuBase):
     dish_id: int
     model_config = ConfigDict(from_attributes=True)
+
+# ---------------------------
+# Orders
+# ---------------------------
+class OrderCreate(BaseModel):
+    status: int
 
 
 # ---------------------------
@@ -139,7 +173,8 @@ async def get_restaurants(db: AsyncSession = Depends(get_db)):
     return restaurants
 
 @app.get('/restaurants/{restaurant_id}/menu', response_model=List[MenuOut])
-async def get_restaurant_menu(restaurant_id: int = Path(..., title='ID of the restaurant'), db: AsyncSession = Depends(get_db)):
+async def get_restaurant_menu(restaurant_id: int = Path(..., title='ID of the restaurant'), db: AsyncSession = Depends(get_db)):    
+    #Path is optional
     """get all dishes from a restaurant by id"""
 
     # Optional: check if restaurant exists first

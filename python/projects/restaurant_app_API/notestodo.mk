@@ -1,3 +1,11 @@
+""" for later"""
+# Add __repr__ methods to models to ease debugging.
+
+# Consider adding a created_at timestamp column for restaurants and menu items.
+
+# You might want to create async CRUD helper functions for reuse as your project grows.
+
+
 # Authentication (login, roles)
 
 # Pagination & filtering
