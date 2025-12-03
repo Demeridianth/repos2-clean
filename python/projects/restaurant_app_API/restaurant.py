@@ -8,8 +8,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
-"""add customer ID and REstaurant ID to order table (rest id is foreign key, also add this to sqlmodels) add payment method and adress MAYBE """
-"""pydantic models for order + order_items, endpoint"""
+""" endpoint, structure (maybe with routers)"""
 
 
 # ---------------------------
@@ -60,6 +59,9 @@ class RestaurantsDB(Base):
     menus: Mapped[List['MenuDB']] = relationship(back_populates='restaurant', cascade='all, delete-orphan', single_parent=True)
     # all, delete_orphan = “When I add, update, or delete a Restaurant, apply those operations to related Menu rows automatically.”
     # “If a Menu item no longer belongs to any Restaurant, DELETE it from the DB automatically.”
+    # SINGLE PARENT means = “A child object can only ever belong to ONE parent at a time.” t means each MenuDB item can be linked to only one restaurant IT IS NEEDED FOR 'all, delete-orphan'
+
+    orders: Mapped[List['OrderDB']] = relationship(back_populates='restaurant')
 
 # Menus
 class MenuDB(Base):
@@ -83,9 +85,14 @@ class OrderDB(Base):
 
     order_id: Mapped[int] = mapped_column(primary_key=True, index=True)
     status: Mapped[str] = mapped_column(String, default='pending')
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())  
+    customer_id: Mapped[int] = mapped_column(nullable=False)  
+    restaurant_id: Mapped[int] = mapped_column(ForeignKey('restaurants.restaurant_id'), nullable=False)
+    delivery_adress: Mapped[str] = mapped_column(String, nullable=False)  
+    payment_method: Mapped[str] = mapped_column(String, nullable=False)  
 
     items: Mapped[List['OrderItemDB']] = relationship(back_populates='order', cascade='all, delete-orphan', single_parent=True)
+    restaurant: Mapped['RestaurantsDB'] = relationship(back_populates='orders')
 
 # Order Items
 class OrderItemDB(Base):
@@ -148,8 +155,23 @@ class MenuOut(MenuBase):
 # ---------------------------
 # Orders
 # ---------------------------
+class OrderItemCreate(BaseModel):
+    quantity: int
+    order_id: int
+    dish_id: int
+
 class OrderCreate(BaseModel):
-    status: int
+    customer_id: int
+    restaurant_id: int
+    delivery_address: str
+    payment_method: str
+    items: List[OrderItemCreate]
+
+class OrderOut(BaseModel):
+    order_id: int
+    status: str
+    total_price: float
+
 
 
 # ---------------------------
@@ -163,20 +185,18 @@ async def get_db():
 # ---------------------------
 # CRUD endpoints (async)
 # ---------------------------
-
+"""get all restaurants"""
 @app.get('/restaurants', response_model=List[RestaurantOut])
 async def get_restaurants(db: AsyncSession = Depends(get_db)):
-    """get all restaurants"""
     result = await db.execute(select(RestaurantsDB))
     restaurants = result.scalars().all()
     # scalars transform tuples into simple values
     return restaurants
 
+"""get all dishes from a restaurant by id"""
 @app.get('/restaurants/{restaurant_id}/menu', response_model=List[MenuOut])
 async def get_restaurant_menu(restaurant_id: int = Path(..., title='ID of the restaurant'), db: AsyncSession = Depends(get_db)):    
     #Path is optional
-    """get all dishes from a restaurant by id"""
-
     # Optional: check if restaurant exists first
     result = await db.execute(
         select(RestaurantsDB).where(RestaurantsDB.restaurant_id == restaurant_id)
@@ -190,3 +210,15 @@ async def get_restaurant_menu(restaurant_id: int = Path(..., title='ID of the re
     if not menu:
         return []
     return menu
+
+"""create and order, insert into orders table and order_items table"""
+@app.post('/orders', response_model=OrderOut)
+async def create_order(order_data: OrderCreate,  db: AsyncSession = Depends(get_db)):
+    # Check if restaurant exists
+    restaurant = await db.scalar(select(RestaurantsDB).where(RestaurantsDB.restaurant_id == order_data.restaurant_id))
+    if not restaurant:
+        raise HTTPException(status_code=404, detail='Restaurant not found')
+    
+    #
+
+    
