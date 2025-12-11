@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Path
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, func
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Mapped, mapped_column
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Mapped, mapped_column, configure_mappers, lazyload, selectinload
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.future import select
 from pydantic import BaseModel, ConfigDict
@@ -15,7 +15,7 @@ from datetime import datetime
 # FastAPI app
 # ---------------------------
 app = FastAPI(
-    title="Food Servie API",
+    title="Food Service API",
     description="Async API for food service",
     version="1.0.0"
 )
@@ -38,7 +38,7 @@ app.add_middleware(
 # ---------------------------
 DATABASE_URL = 'postgresql+asyncpg://postgres:9922296@localhost:5432/food'
 engine = create_async_engine(DATABASE_URL, future=True)     # can add 'echo=True' for debuging, will show SQL quearies in terminal
-AsyncSessionLocal = sessionmaker(bind=engine, expire_on_commit=True, class_=AsyncSession)
+AsyncSessionLocal = sessionmaker(bind=engine, expire_on_commit=False, class_=AsyncSession)
 Base = declarative_base()
 
 
@@ -56,12 +56,12 @@ class RestaurantsDB(Base):
     cuisine: Mapped[str] = mapped_column(String, nullable=False)
 
     # 1 restaurant -> many menus
-    menus: Mapped[List['MenuDB']] = relationship(back_populates='restaurant', cascade='all, delete-orphan', single_parent=True)
+    menus: Mapped[List['MenuDB']] = relationship(back_populates='restaurant', cascade='all, delete-orphan', single_parent=True, lazy='selectin')
     # all, delete_orphan = “When I add, update, or delete a Restaurant, apply those operations to related Menu rows automatically.”
     # “If a Menu item no longer belongs to any Restaurant, DELETE it from the DB automatically.”
     # SINGLE PARENT means = “A child object can only ever belong to ONE parent at a time.” t means each MenuDB item can be linked to only one restaurant IT IS NEEDED FOR 'all, delete-orphan'
 
-    orders: Mapped[List['OrderDB']] = relationship(back_populates='restaurant')
+    orders: Mapped[List['OrderDB']] = relationship(back_populates='restaurant', lazy='selectin')
 
 # Menus
 class MenuDB(Base):
@@ -76,35 +76,35 @@ class MenuDB(Base):
     restaurant_id: Mapped[int] = mapped_column(ForeignKey('restaurants.restaurant_id'), nullable=False)
 
     # Many manus -> 1 restaurant
-    restaurant: Mapped['RestaurantsDB'] = relationship(back_populates='menus')
-    item: Mapped['OrderItemDB'] = relationship(back_populates='dish')
+    restaurant: Mapped['RestaurantsDB'] = relationship(back_populates='menus', lazy='selectin')
+    items: Mapped[List['OrderItemDB']] = relationship(back_populates='dish', lazy='selectin')
 
 # Orders
 class OrderDB(Base):
     __tablename__ = "orders"
 
-    order_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    order_id: Mapped[int] = mapped_column(primary_key=True, index=True, autoincrement=True)
     status: Mapped[str] = mapped_column(String, default='pending')
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())  
     customer_id: Mapped[int] = mapped_column(nullable=False)  
     restaurant_id: Mapped[int] = mapped_column(ForeignKey('restaurants.restaurant_id'), nullable=False)
-    delivery_adress: Mapped[str] = mapped_column(String, nullable=False)  
+    delivery_address: Mapped[str] = mapped_column(String, nullable=False)  
     payment_method: Mapped[str] = mapped_column(String, nullable=False)  
 
-    items: Mapped[List['OrderItemDB']] = relationship(back_populates='order', cascade='all, delete-orphan', single_parent=True)
-    restaurant: Mapped['RestaurantsDB'] = relationship(back_populates='orders')
+    items: Mapped[List['OrderItemDB']] = relationship(back_populates='order', cascade='all, delete-orphan', single_parent=True, lazy='selectin')
+    restaurant: Mapped['RestaurantsDB'] = relationship(back_populates='orders', lazy='selectin')
 
 # Order Items
 class OrderItemDB(Base):
-    __table__ = "order_items"
+    __tablename__ = "order_items"
 
     item_id: Mapped[int] = mapped_column(primary_key=True, index=True)
     quantity: Mapped[int] = mapped_column(nullable=False)
     order_id: Mapped[int] = mapped_column(ForeignKey('orders.order_id'), nullable=False)
     dish_id: Mapped[int] = mapped_column(ForeignKey('menus.dish_id'), nullable=False)
 
-    order: Mapped['OrderDB'] = relationship(back_populates='items')
-    dish: Mapped['MenuDB'] = relationship(back_populates='item')
+    order: Mapped['OrderDB'] = relationship(back_populates='items', lazy='selectin')
+    dish: Mapped['MenuDB'] = relationship(back_populates='items', lazy='selectin')
 
 
 
@@ -157,7 +157,6 @@ class MenuOut(MenuBase):
 # ---------------------------
 class OrderItemCreate(BaseModel):
     quantity: int
-    order_id: int
     dish_id: int
 
 class OrderCreate(BaseModel):
@@ -171,7 +170,8 @@ class OrderOut(BaseModel):
     order_id: int
     status: str
     total_price: float
-
+    model_config = ConfigDict(from_attributes=True)
+    
 
 
 # ---------------------------
@@ -219,6 +219,68 @@ async def create_order(order_data: OrderCreate,  db: AsyncSession = Depends(get_
     if not restaurant:
         raise HTTPException(status_code=404, detail='Restaurant not found')
     
-    #
+    # Get all dishes in request
+    dish_ids = [item.dish_id for item in order_data.items]
+    dishes = (await db.scalars(
+        select(MenuDB).where(
+            MenuDB.dish_id.in_(dish_ids),
+            MenuDB.restaurant_id == order_data.restaurant_id
+        )
+    )).all()
 
+    # Map dish_id -> price
+    price_map = {dish.dish_id: dish.price for dish in dishes}
     
+ 
+
+    # Create order row
+    order = OrderDB(
+        customer_id = order_data.customer_id,
+        restaurant_id = order_data.restaurant_id,
+        delivery_address = order_data.delivery_address,
+        payment_method = order_data.payment_method,
+        status = 'pending'
+    )
+    db.add(order)
+    await db.flush()
+    
+
+    # Create order_items row
+    for item in order_data.items:
+        order_item = OrderItemDB(
+            order_id = order.order_id,
+            dish_id = item.dish_id,
+            quantity = item.quantity
+        )
+        db.add(order_item)
+   
+
+    # Commit
+    
+    await db.commit()
+    await db.refresh(order)
+
+    result = await db.execute(
+        select(OrderDB)
+        .options(
+            selectinload(OrderDB.items).selectinload(OrderItemDB.dish)
+        )
+        .where(OrderDB.order_id == order.order_id)
+    )
+    order_with_items = result.scalar_one()
+
+       # Calculate total price
+    total_price = sum(price_map[item.dish_id] * item.quantity for item in order_data.items)
+
+    # Return response
+#     return OrderOut.model_validate({
+#     'order_id': order_with_items.order_id,
+#     'status': order_with_items.status,
+#     'total_price': total_price,
+# })
+
+    return OrderOut(
+        order_id=order_with_items.order_id,
+        status=order_with_items.status,
+        total_price=total_price,
+    )
