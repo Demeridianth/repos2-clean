@@ -5,6 +5,7 @@
 # ├── models.py             # SQLAlchemy ORM models
 # ├── schemas.py            # Pydantic models (request/response validation)
 # ├── crud.py               # CRUD logic (db queries)
+# |-- enums               
 # ├── routers/
 # │   ├── films.py          # Endpoints related to films
 # │   └── users.py          # (later) endpoints related to users

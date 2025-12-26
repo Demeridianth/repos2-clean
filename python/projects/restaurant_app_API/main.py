@@ -1,14 +1,15 @@
 from fastapi import FastAPI, HTTPException, Depends, Path
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, func
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, func, Enum as SAEnum
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Mapped, mapped_column, configure_mappers, lazyload, selectinload
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.future import select
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 from datetime import datetime
+from enum import Enum
 
-""" endpoint, structure (maybe with routers)"""
+"""structure (maybe with routers), next sprint"""
 
 
 # ---------------------------
@@ -80,16 +81,27 @@ class MenuDB(Base):
     items: Mapped[List['OrderItemDB']] = relationship(back_populates='dish', lazy='selectin')
 
 # Orders
+class OrderStatus(str, Enum):
+    pending = "pending"
+    accepted = "accepted"
+    delivered = "delivered"
+    cancelled = "cancelled"
+
 class OrderDB(Base):
     __tablename__ = "orders"
 
     order_id: Mapped[int] = mapped_column(primary_key=True, index=True, autoincrement=True)
-    status: Mapped[str] = mapped_column(String, default='pending')
+    status: Mapped[str] = mapped_column(
+        SAEnum(OrderStatus, name='order_status_enum'), 
+        nullable=False,
+        default=OrderStatus.pending
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())  
     customer_id: Mapped[int] = mapped_column(nullable=False)  
     restaurant_id: Mapped[int] = mapped_column(ForeignKey('restaurants.restaurant_id'), nullable=False)
     delivery_address: Mapped[str] = mapped_column(String, nullable=False)  
-    payment_method: Mapped[str] = mapped_column(String, nullable=False)  
+    payment_method: Mapped[str] = mapped_column(String, nullable=False)
+    total_price: Mapped[float] = mapped_column(Float, nullable=False)  
 
     items: Mapped[List['OrderItemDB']] = relationship(back_populates='order', cascade='all, delete-orphan', single_parent=True, lazy='selectin')
     restaurant: Mapped['RestaurantsDB'] = relationship(back_populates='orders', lazy='selectin')
@@ -157,7 +169,7 @@ class MenuOut(MenuBase):
 # ---------------------------
 class OrderItemCreate(BaseModel):
     quantity: int
-    dish_id: int
+    dish_id: int = Field(gt=0)      # so this wont be allowed: { "dish_id": 1, "quantity": -10 }
 
 class OrderCreate(BaseModel):
     customer_id: int
@@ -168,8 +180,10 @@ class OrderCreate(BaseModel):
 
 class OrderOut(BaseModel):
     order_id: int
-    status: str
+    status: OrderStatus
     total_price: float
+    delivery_adress: str
+
     model_config = ConfigDict(from_attributes=True)
     
 
@@ -211,76 +225,72 @@ async def get_restaurant_menu(restaurant_id: int = Path(..., title='ID of the re
         return []
     return menu
 
+
+
 """create and order, insert into orders table and order_items table"""
 @app.post('/orders', response_model=OrderOut)
-async def create_order(order_data: OrderCreate,  db: AsyncSession = Depends(get_db)):
-    # Check if restaurant exists
-    restaurant = await db.scalar(select(RestaurantsDB).where(RestaurantsDB.restaurant_id == order_data.restaurant_id))
-    if not restaurant:
-        raise HTTPException(status_code=404, detail='Restaurant not found')
-    
-    # Get all dishes in request
+async def create_order(order_data: OrderCreate, db: AsyncSession = Depends(get_db)):
+
     dish_ids = [item.dish_id for item in order_data.items]
-    dishes = (await db.scalars(
-        select(MenuDB).where(
-            MenuDB.dish_id.in_(dish_ids),
-            MenuDB.restaurant_id == order_data.restaurant_id
+
+    # START TRANSACTION - db.begin()
+    # If everything inside succeeds → COMMIT
+    # If ANY exception happens → ROLLBACK automatically
+    async with db.begin():
+        restaurant = await db.scalar(
+            select(RestaurantsDB)
+            .where(RestaurantsDB.restaurant_id == order_data.restaurant_id)
         )
-    )).all()
+        # Check if restaurant exists
+        if not restaurant:
+            raise HTTPException(404, "Restaurant not found")
+        # Get all dishes in request
+        dishes = (
+            await db.scalars(
+                select(MenuDB).where(
+                    MenuDB.dish_id.in_(dish_ids),
+                    MenuDB.restaurant_id == order_data.restaurant_id
+                )
+            )
+        ).all()
 
-    # Map dish_id -> price
-    price_map = {dish.dish_id: dish.price for dish in dishes}
-    
- 
+        if len(dishes) != len(dish_ids):
+            raise HTTPException(400, "Invalid dishes")
 
-    # Create order row
-    order = OrderDB(
-        customer_id = order_data.customer_id,
-        restaurant_id = order_data.restaurant_id,
-        delivery_address = order_data.delivery_address,
-        payment_method = order_data.payment_method,
-        status = 'pending'
-    )
-    db.add(order)
-    await db.flush()
-    
+        # map dish_id - > price
+        price_map = {d.dish_id: d.price for d in dishes}
 
-    # Create order_items row
-    for item in order_data.items:
-        order_item = OrderItemDB(
-            order_id = order.order_id,
-            dish_id = item.dish_id,
-            quantity = item.quantity
+        # calculate total price
+        total_price = sum(
+            price_map[item.dish_id] * item.quantity
+            for item in order_data.items
         )
-        db.add(order_item)
-   
 
-    # Commit
-    
-    await db.commit()
-    await db.refresh(order)
-
-    result = await db.execute(
-        select(OrderDB)
-        .options(
-            selectinload(OrderDB.items).selectinload(OrderItemDB.dish)
+        # create order
+        order = OrderDB(
+            customer_id=order_data.customer_id,
+            restaurant_id=order_data.restaurant_id,
+            delivery_address=order_data.delivery_address,
+            payment_method=order_data.payment_method,
+            status=OrderStatus.pending,
+            total_price=total_price
         )
-        .where(OrderDB.order_id == order.order_id)
-    )
-    order_with_items = result.scalar_one()
+        db.add(order)
+        await db.flush()
 
-       # Calculate total price
-    total_price = sum(price_map[item.dish_id] * item.quantity for item in order_data.items)
-
-    # Return response
-#     return OrderOut.model_validate({
-#     'order_id': order_with_items.order_id,
-#     'status': order_with_items.status,
-#     'total_price': total_price,
-# })
+        # create order_items
+        for item in order_data.items:
+            db.add(
+                OrderItemDB(
+                    order_id=order.order_id,
+                    dish_id=item.dish_id,
+                    quantity=item.quantity
+                )
+            )
 
     return OrderOut(
-        order_id=order_with_items.order_id,
-        status=order_with_items.status,
-        total_price=total_price,
+        order_id=order.order_id,
+        status=order.status,
+        total_price=order.total_price,
+        delivery_adress=order.delivery_address
     )

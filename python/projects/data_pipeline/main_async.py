@@ -76,7 +76,7 @@ app = FastAPI(
 )
 
 # ---------------------------
-# CRUD endpoints (async)
+# CRUD endpoints (async) (Routes)
 # ---------------------------
 
 @app.get("/films", response_model=List[FilmOut])
