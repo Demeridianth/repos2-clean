@@ -57,7 +57,11 @@ class RestaurantsDB(Base):
     cuisine: Mapped[str] = mapped_column(String, nullable=False)
 
     # 1 restaurant -> many menus
-    menus: Mapped[List['MenuDB']] = relationship(back_populates='restaurant', cascade='all, delete-orphan', single_parent=True, lazy='selectin')
+    menus: Mapped[List['MenuDB']] = relationship(
+        back_populates='restaurant', 
+        cascade='all, delete-orphan', 
+        single_parent=True, 
+        lazy='selectin')
     # all, delete_orphan = “When I add, update, or delete a Restaurant, apply those operations to related Menu rows automatically.”
     # “If a Menu item no longer belongs to any Restaurant, DELETE it from the DB automatically.”
     # SINGLE PARENT means = “A child object can only ever belong to ONE parent at a time.” t means each MenuDB item can be linked to only one restaurant IT IS NEEDED FOR 'all, delete-orphan'

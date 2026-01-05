@@ -1,9 +1,11 @@
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel 
 from typing import List, Optional
 from enum import Enum
 
-
+# to run: uvicorn quick_api:app --reload --port 8000
+# or
 app = FastAPI(title='Products API')
 
 
@@ -40,4 +42,4 @@ products = {
 
 @app.get('/products', response_model=List[ProductOut])
 def get_all_products():
-    return list(products.values)
+    return list(products.values())
