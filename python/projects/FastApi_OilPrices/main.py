@@ -72,29 +72,10 @@ def get_all_prices():
 
 # ENDPOINTS
 
-# get all records | up until n index | search by parameter
+# get all records 
 @app.get('/prices', response_model=List[OilPrice])
-def query_item_by_price(
-    n: int | None = None,
-    price_id: int | None = None,
-    price_date: date | None = None,
-    price: float | None = None,
-    euro_price: float | None = None,
-    prices: List[OilPrice] = Depends(get_all_prices)):
-    # for outer scope
-    def check_price(oil_price: OilPrice):
-        return all(
-            (
-                price_id is None or oil_price.price_id == price_id, 
-                price_date is None or oil_price.price_date == price_date, 
-                price is None or oil_price.price == price, 
-                euro_price is None or oil_price.euro_price == euro_price 
-
-            )
-        )
-    result = [oil_price for oil_price in prices if check_price(oil_price)]
-    return result[:n] if n is not None else result
-    
+def get_all_prices(prices=Depends(get_all_prices)):
+    return prices
 
 # get record by id
 @app.get('/prices/{price_id}', response_model=OilPrice)
