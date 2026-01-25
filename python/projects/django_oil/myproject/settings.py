@@ -41,10 +41,26 @@ INSTALLED_APPS = [
     # Third party
     'rest_framework',
     'django_filters',
+    'drf_spectacular',
 
     # Your app
     'oilprices.apps.OilpricesConfig',
 ]
+
+# SPECTECULAR
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Oil Prices API',
+    'DESCRIPTION': 'API for managing oil prices',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
