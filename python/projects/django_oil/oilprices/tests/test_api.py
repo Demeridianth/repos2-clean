@@ -102,14 +102,3 @@ def test_delete_price():
     assert OilPrice.objects.count() == 0
 
 
-# If you want to go next level:
-
-# FactoryBoy for test data
-
-# Auth tests
-
-# Filtering tests
-
-# Performance tests
-
-# CI (GitHub Actions)
