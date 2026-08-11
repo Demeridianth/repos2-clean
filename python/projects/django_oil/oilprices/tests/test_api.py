@@ -36,6 +36,16 @@ def test_get_price_by_id():
     assert response.data["price"] == 90
 
 
+# write a test to check for 404 when price not found
+@pytest.mark.django_db
+@pytest.mark.parametrize("price_id", [999, 1000, 1001])     # tells the test to run multiple times with different price_id values
+def test_get_price_not_found_parametrized(price_id):
+    client = APIClient()
+
+    response = client.get(f"/api/prices/{price_id}/")
+    assert response.status_code == 404
+
+
 @pytest.mark.django_db
 def test_get_price_not_found():
     client = APIClient()

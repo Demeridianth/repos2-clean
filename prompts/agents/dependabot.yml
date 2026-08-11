@@ -1,0 +1,84 @@
+version: 2
+
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      # Group all patch updates into a single PR
+      patch-updates:
+        update-types:
+          - "patch"
+      # Group minor updates by category
+      azure-minor:
+        patterns:
+          - "azure-*"
+          - "opencensus-*"
+        update-types:
+          - "minor"
+      ai-minor:
+        patterns:
+          - "openai"
+          - "langchain-*"
+          - "langgraph*"
+          - "langsmith"
+          - "anthropic"
+          - "tiktoken"
+        update-types:
+          - "minor"
+      django-minor:
+        patterns:
+          - "django*"
+        update-types:
+          - "minor"
+      otel-minor:
+        patterns:
+          - "opentelemetry-*"
+        update-types:
+          - "minor"
+      document-processing:
+        patterns:
+          - "python-docx"
+          - "python-pptx"
+          - "PyMuPDF"
+          - "PyPDF2"
+          - "openpyxl"
+          - "reportlab"
+          - "pillow"
+          - "lxml"
+          - "beautifulsoup4"
+          - "pdf2image"
+        update-types:
+          - "minor"
+      everything-else:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/src"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/src/chatbot-app"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "pip"
+    directory: "/reference_deck_be"
+    schedule:
+      interval: "weekly"
