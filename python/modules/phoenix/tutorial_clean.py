@@ -5,10 +5,7 @@ from phoenix.client import Client
 import os
 
 
-os.environ["PHOENIX_API_KEY"] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJBcGlLZXk6MSJ9.3AcRijiMZxhe3qZE25kipsKj0C1SBfdaHY1EytqmWZk'
-os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = 'https://app.phoenix.arize.com/s/TUTORIAL_NEXUS'
-os.environ["SERPER_API_KEY"] = 'e2920ba872029c9b8aadeae3aedb39ae116cfc26'
-os.environ["OPENAI_API_KEY"] = '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'
+
 
 tracer_provider = register(project_name="crewai-tracing-quickstart-tutorial", auto_instrument=True)
 
